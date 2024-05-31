@@ -24,7 +24,7 @@ def get_db_connection():
     return cx_Oracle.connect(user="restarea", password="1577", dsn=dsn)
 
 
-# 통계에 검색기능
+# 통계에 검색 기능
 @app.route('/api/search', methods=['GET'])
 def get_avg_search():
     code = request.args.get('code')
@@ -33,7 +33,7 @@ def get_avg_search():
     area = request.args.get('area')
     url = 'http://www.opinet.co.kr/api/searchByName.do'
     params = {
-        "code" : code,
+        "code": code,
         'out': out,
         'osnm': osnm,
         'area': area
@@ -43,24 +43,80 @@ def get_avg_search():
     if response.status_code == 200:
         response_text = response.text
         search_data = json.loads(response_text)
-
         FindingStations = []
         for oil in search_data['RESULT']['OIL']:
             FindingStation = {
                 'name': oil['OS_NM'],
                 'address': oil['NEW_ADR'],
-                # 'GIS_X': oil['GIS_X_COOR'],
-                # 'GIS_Y': oil['GIS_Y_COOR'],
                 'Gas_Trade_name': oil['POLL_DIV_CD'],
                 'LPG_YN': oil['LPG_YN'],
                 'Charge_Trade_name': oil['GPOLL_DIV_CD'],
-                'UNI_ID':oil['UNI_ID']
+                'UNI_ID': oil['UNI_ID']
             }
             FindingStations.append(FindingStation)
 
         return jsonify(FindingStations)
     else:
         return jsonify({'search_error': 'Failed to fetch data from the API'}), 500
+
+
+@app.route('/api/detail', methods=['GET'])
+def get_detail():
+    uni_id = request.args.get('uni_id')
+    if not uni_id:
+        return jsonify({'error': 'UNI_ID는 필수입니다.'}), 400
+    url = 'http://www.opinet.co.kr/api/detailById.do'
+    params = {
+        'code': "F240411107",
+        'out': 'json',
+        'id': uni_id
+    }
+    response = requests.get(url, params=params)
+
+    if response.status_code == 200:
+        response_text = response.text
+        detail_data = json.loads(response_text)
+        return jsonify(detail_data)
+    else:
+        return jsonify({'error': '상세 정보를 가져올 수 없습니다.'}), 500
+
+
+@app.route('/api/search_and_detail', methods=['GET'])
+def get_search_and_detail():
+    code = request.args.get('code')
+    out = request.args.get('out')
+    osnm = request.args.get('osnm')
+    area = request.args.get('area')
+
+    response = requests.get('http://localhost:5000/api/search', params={
+        'code': code,
+        'out': out,
+        'osnm': osnm,
+        'area': area
+    })
+
+    if response.status_code == 200:
+        search_data = response.json()
+        uni_ids = [station['UNI_ID'] for station in search_data]
+
+        detail_data = []
+        for uni_id in uni_ids:
+            response = requests.get('http://localhost:5000/api/detail', params={
+                'uni_id': uni_id
+            })
+
+            if response.status_code == 200:
+                detail_data.append(response.json())
+            else:
+                return jsonify({'error': 'Failed to fetch detail data'}), 500
+
+        return jsonify({'search_data': search_data, 'detail_data': detail_data})
+    else:
+        return jsonify({'error':  '정보를 가져올 수 없습니다.'}), 500
+
+# ------------------------------------------------
+
+
 
 
 
