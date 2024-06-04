@@ -24,44 +24,57 @@ def get_db_connection():
     return cx_Oracle.connect(user="restarea", password="1577", dsn=dsn)
 
 
-# 통계에 검색기능
-@app.route('/api/search', methods=['GET'])
-def get_avg_search():
+# 통계에 검색 기능
+@app.route('/api/gas-stations', methods=['GET'])
+def get_gas_stations():
     code = request.args.get('code')
     out = request.args.get('out')
     osnm = request.args.get('osnm')
     area = request.args.get('area')
-    url = 'http://www.opinet.co.kr/api/searchByName.do'
-    params = {
-        "code" : code,
-        'out': out,
-        'osnm': osnm,
-        'area': area
-    }
+
+    try:
+        response = make_api_call('http://www.opinet.co.kr/api/searchByName.do', {
+            'code': code,
+            'out': out,
+            'osnm': osnm,
+            'area': area
+        })
+        response.raise_for_status()
+        gas_stations = response.json()['RESULT']['OIL']
+        return jsonify([{
+            'name': station['OS_NM'],
+            'address': station['NEW_ADR'],
+            'gas_trade_name': station['POLL_DIV_CD'],
+            'charge_trade_name': station['GPOLL_DIV_CD'],
+            'uni_id': station['UNI_ID']
+        } for station in gas_stations])
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': 'Failed to retrieve gas stations'}), 500
+
+
+@app.route('/api/gas-station-detail', methods=['GET'])
+def get_gas_station_detail():
+    uni_id = request.args.get('uni_id')
+    if not uni_id:
+        return jsonify({'error': 'UNI_ID is required'}), 400
+
+    try:
+        response = make_api_call('http://www.opinet.co.kr/api/detailById.do', {
+            'code': 'F240411107',
+            'out': 'json',
+            'id': uni_id
+        })
+        response.raise_for_status()
+        return jsonify(response.json())
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': 'Failed to retrieve gas station detail'}), 500
+
+
+def make_api_call(url, params):
     response = requests.get(url, params=params)
-
-    if response.status_code == 200:
-        response_text = response.text
-        search_data = json.loads(response_text)
-
-        FindingStations = []
-        for oil in search_data['RESULT']['OIL']:
-            FindingStation = {
-                'name': oil['OS_NM'],
-                'address': oil['NEW_ADR'],
-                # 'GIS_X': oil['GIS_X_COOR'],
-                # 'GIS_Y': oil['GIS_Y_COOR'],
-                'Gas_Trade_name': oil['POLL_DIV_CD'],
-                'LPG_YN': oil['LPG_YN'],
-                'Charge_Trade_name': oil['GPOLL_DIV_CD'],
-                'UNI_ID':oil['UNI_ID']
-            }
-            FindingStations.append(FindingStation)
-
-        return jsonify(FindingStations)
-    else:
-        return jsonify({'search_error': 'Failed to fetch data from the API'}), 500
-
+    response.raise_for_status()
+    return response
+# ------------------------------------------------
 
 
 # 차트1 내 주변 주유소 가격
