@@ -3,6 +3,7 @@ import requests
 import xml.etree.ElementTree as ET
 from pyproj import Proj, transform, Transformer
 from flask_cors import CORS
+from openai import OpenAI
 import json
 import cx_Oracle
 import logging  # 로깅을 위한 모듈 임포트
@@ -24,6 +25,43 @@ def get_db_connection():
     return cx_Oracle.connect(user="restarea", password="1577", dsn=dsn)
 
 
+# chatbot
+OPEN_API_KEY = 'sk-proj-qoqcfh4OW7aDRS0XXzw0T3BlbkFJstADt3tTPFtrprgEBpUE'
+THREAD_iD = 'thread_N1cDaC386MkfFL1ay9tyGu0N'
+ASSISTANT_ID = 'asst_kx1QWCJR2x9gqIGh4KBmnvoS'
+client = OpenAI(api_key=OPEN_API_KEY)
+
+@app.route('/ere', methods=['POST'])
+def solve_equation():
+    content = request.json['content']
+    print(content)
+    try:
+        # 새로운 쓰레드 생성
+        # thread = client.beta.threads.create()
+        # 사용자 메시지를 처리하는 메시지 생성
+        message = client.beta.threads.messages.create(
+            thread_id=THREAD_iD,
+            # thread_id=thread.id,
+            role="user",
+            content=content
+        )
+        # 결과를 받기 위해 실행
+        run = client.beta.threads.runs.create_and_poll(
+            # thread_id=thread.id,
+            thread_id=THREAD_iD,
+            assistant_id=ASSISTANT_ID,
+        )
+
+        if run.status == 'completed':
+            # 모든 메시지를 가져오고 마지막 메시지의 내용을 반환
+            messages = client.beta.threads.messages.list(thread_id=THREAD_iD)
+            last_message = messages.data[0].content[0].text.value
+            return jsonify({"status": "success", "answer": last_message})
+        else:
+            return jsonify({"status": "error", "message": "Failed to complete the run"})
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
 # 통계에 검색 기능
 @app.route('/api/gas-stations', methods=['GET'])
 def get_gas_stations():
