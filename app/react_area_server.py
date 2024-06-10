@@ -7,6 +7,11 @@ from openai import OpenAI
 import json
 import cx_Oracle
 import logging  # 로깅을 위한 모듈 임포트
+from dotenv import load_dotenv
+import os
+
+# 환경 변수 로드
+load_dotenv()
 
 
 app = Flask(__name__)
@@ -26,8 +31,10 @@ def get_db_connection():
 
 
 # chatbot
-OPEN_API_KEY = 'sk-proj-qoqcfh4OW7aDRS0XXzw0T3BlbkFJstADt3tTPFtrprgEBpUE'
-THREAD_iD = 'thread_N1cDaC386MkfFL1ay9tyGu0N'
+OPEN_API_KEY =os.getenv("OPENAI_API_KEY")
+if OPEN_API_KEY is None:
+    raise ValueError("API key not found in environment variables")
+THREAD_iD = 'thread_5Utmoonk7gsfw8O76ojPvarV'
 ASSISTANT_ID = 'asst_kx1QWCJR2x9gqIGh4KBmnvoS'
 client = OpenAI(api_key=OPEN_API_KEY)
 
