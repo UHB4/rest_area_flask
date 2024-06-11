@@ -386,9 +386,12 @@ def query_database(latitude, longitude):
                        minLng=longitude - 0.1, maxLng=longitude + 0.1)
 
         stations = []
+
         for row in cursor.fetchall():
             stations.append({"Station Name": row[0], "Distance": row[1]})
-            print("Station Name: ", row[0], "Distance: ", row[1])  # 콘솔에 충전소 이름과 거리 출력
+            stations.sort(key=lambda x: x["Distance"])
+            for station in stations:
+                print("Station Name:", station["Station Name"], "Distance:", station["Distance"])
 
         cursor.close()
         connection.close()
@@ -493,7 +496,7 @@ def user_location_to_tm128(latitude, longitude):
 # 주유소 정보를 가져오는 함수
 def get_gas_stations22(x, y):
     url = "http://www.opinet.co.kr/api/aroundAll.do"
-    params = {"code": "F240411107", "x": x, "y": y, "radius": 5000, "sort": 1, "prodcd": "B027", "out": "xml"}
+    params = {"code": "F240411107", "x": x, "y": y, "radius": 5000, "sort": 2, "prodcd": "B027", "out": "xml"}
     response = requests.get(url, params=params)
     if response.status_code == 200:
         print(f"Received response from API for coordinates ({x}, {y}) with status {response.status_code}")
