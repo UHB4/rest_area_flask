@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask, request, jsonify
 import requests
 import xml.etree.ElementTree as ET
@@ -26,8 +28,12 @@ def get_db_connection():
 
 
 # chatbot
+OPEN_API_KEY =os.getenv("OPENAI_API_KEY")
+if OPEN_API_KEY is None:
+    raise ValueError("API key not found in environment variables")
 
-THREAD_iD = 'thread_N1cDaC386MkfFL1ay9tyGu0N'
+
+THREAD_iD = 'thread_Yp5WHJFgFrPuncN9LvXqRJQI'
 ASSISTANT_ID = 'asst_kx1QWCJR2x9gqIGh4KBmnvoS'
 client = OpenAI(api_key=OPEN_API_KEY)
 
@@ -45,6 +51,7 @@ def solve_equation():
             role="user",
             content=content
         )
+        print('solve_equation] debug1')
         # 결과를 받기 위해 실행
         run = client.beta.threads.runs.create_and_poll(
             # thread_id=thread.id,
@@ -52,12 +59,16 @@ def solve_equation():
             assistant_id=ASSISTANT_ID,
         )
 
+
+        print(run.status)
         if run.status == 'completed':
             # 모든 메시지를 가져오고 마지막 메시지의 내용을 반환
             messages = client.beta.threads.messages.list(thread_id=THREAD_iD)
             last_message = messages.data[0].content[0].text.value
+
             return jsonify({"status": "success", "answer": last_message})
         else:
+
             return jsonify({"status": "error", "message": "Failed to complete the run"})
 
     except Exception as e:
