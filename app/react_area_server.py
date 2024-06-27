@@ -1,5 +1,3 @@
-import os
-
 from flask import Flask, request, jsonify
 import requests
 import xml.etree.ElementTree as ET
@@ -9,6 +7,11 @@ from openai import OpenAI
 import json
 import cx_Oracle
 import logging  # 로깅을 위한 모듈 임포트
+from dotenv import load_dotenv
+import os
+
+# 환경 변수 로드
+load_dotenv()
 
 
 app = Flask(__name__)
@@ -23,18 +26,16 @@ cache = {}
 
 def get_db_connection():
     dsn = cx_Oracle.makedsn("192.168.0.27", 1521, service_name="xe")
-    # dsn = cx_Oracle.makedsn("localhost", 1521, service_name="xe")
     return cx_Oracle.connect(user="restarea", password="1577", dsn=dsn)
-
 
 # chatbot
 OPEN_API_KEY =os.getenv("OPENAI_API_KEY")
 if OPEN_API_KEY is None:
     raise ValueError("API key not found in environment variables")
 
-
 THREAD_iD = 'thread_Yp5WHJFgFrPuncN9LvXqRJQI'
 ASSISTANT_ID = 'asst_kx1QWCJR2x9gqIGh4KBmnvoS'
+
 client = OpenAI(api_key=OPEN_API_KEY)
 
 @app.route('/ere', methods=['POST'])
@@ -51,16 +52,12 @@ def solve_equation():
             role="user",
             content=content
         )
-        print('solve_equation] debug1')
         # 결과를 받기 위해 실행
         run = client.beta.threads.runs.create_and_poll(
             # thread_id=thread.id,
             thread_id=THREAD_iD,
             assistant_id=ASSISTANT_ID,
         )
-
-
-        print(run.status)
         if run.status == 'completed':
             # 모든 메시지를 가져오고 마지막 메시지의 내용을 반환
             messages = client.beta.threads.messages.list(thread_id=THREAD_iD)
@@ -68,7 +65,6 @@ def solve_equation():
 
             return jsonify({"status": "success", "answer": last_message})
         else:
-
             return jsonify({"status": "error", "message": "Failed to complete the run"})
 
     except Exception as e:
@@ -307,7 +303,7 @@ def get_avg_all_price():
 
 
 
-# 차트3 최근 오일 가격 데이터 뿌리기
+# 차트3 최근 오일 가격 데이터
 def get_url_avg():
     url = 'https://www.opinet.co.kr/api/avgRecentPrice.do'
     params = {
@@ -390,9 +386,12 @@ def query_database(latitude, longitude):
                        minLng=longitude - 0.1, maxLng=longitude + 0.1)
 
         stations = []
+
         for row in cursor.fetchall():
             stations.append({"Station Name": row[0], "Distance": row[1]})
-            print("Station Name: ", row[0], "Distance: ", row[1])  # 콘솔에 충전소 이름과 거리 출력
+            stations.sort(key=lambda x: x["Distance"])
+            for station in stations:
+                print("Station Name:", station["Station Name"], "Distance:", station["Distance"])
 
         cursor.close()
         connection.close()
@@ -497,7 +496,7 @@ def user_location_to_tm128(latitude, longitude):
 # 주유소 정보를 가져오는 함수
 def get_gas_stations22(x, y):
     url = "http://www.opinet.co.kr/api/aroundAll.do"
-    params = {"code": "F240411107", "x": x, "y": y, "radius": 5000, "sort": 1, "prodcd": "B027", "out": "xml"}
+    params = {"code": "F240411107", "x": x, "y": y, "radius": 5000, "sort": 2, "prodcd": "B027", "out": "xml"}
     response = requests.get(url, params=params)
     if response.status_code == 200:
         print(f"Received response from API for coordinates ({x}, {y}) with status {response.status_code}")
