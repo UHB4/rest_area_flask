@@ -33,6 +33,38 @@ def get_db_connection():
     return cx_Oracle.connect(user="WJE", password="new_password", dsn=dsn)
 
 
+
+# 추천데이터 연결
+
+@app.route('/api/top-restaurants', methods=['GET'])
+def get_top_restaurants():
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT RESTAURANTNAME FROM restaurant")
+        rows = cursor.fetchall()
+        restaurants = [{"name": row[0]} for row in rows]
+        return jsonify(restaurants)
+    except cx_Oracle.DatabaseError as e:
+        logger.error(f"Database error: {e}")
+        return jsonify({"error": "Database error"}), 500
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+
+
+
+
+
 # chatbot
 OPEN_API_KEY =os.getenv("OPENAI_API_KEY")
 if OPEN_API_KEY is None:
