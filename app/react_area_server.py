@@ -25,7 +25,7 @@ logger = logging.getLogger()
 cache = {}
 
 def get_db_connection():
-   dsn = cx_Oracle.makedsn("192.168.0.27", 1521, service_name="xe")
+    dsn = cx_Oracle.makedsn("192.168.0.27", 1521, service_name="xe")
     # dsn = cx_Oracle.makedsn("13.124.184.40", 1111, service_name="xe")
     # dsn = cx_Oracle.makedsn("localhost", 1521, service_name="xe")
     return cx_Oracle.connect(user="restarea", password="1577", dsn=dsn)
