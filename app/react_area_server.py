@@ -63,8 +63,6 @@ def get_top_restaurants():
 
 
 
-
-
 # chatbot
 OPEN_API_KEY =os.getenv("OPENAI_API_KEY")
 if OPEN_API_KEY is None:
